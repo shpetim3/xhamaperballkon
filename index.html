@@ -37,6 +37,9 @@
           <select id="glassType" class="w-full mt-1 p-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
             <option value="transparent">Transparent (€90/m²)</option>
             <option value="black">Xham i Zi (€100/m²)</option>
+            <option value="slideTransparent">Xhama Slide Transparent (€110/m²)</option>
+            <option value="slideBlack">Xhama Slide Xham i zi 30% (€120/m²)</option>
+            <option value="statik">Xhama Statik (€95/m²)</option>
           </select>
         </div>
 
@@ -86,13 +89,37 @@
       }
 
       const area = (width * height) / 10000; // convert cm² to m²
-      const pricePerSqM = glassType === 'black' ? 100 : 90;
+      let pricePerSqM;
+      let glassTypeName;
+
+      switch (glassType) {
+        case 'black':
+          pricePerSqM = 100;
+          glassTypeName = 'Xham i Zi';
+          break;
+        case 'slideTransparent':
+          pricePerSqM = 110;
+          glassTypeName = 'Xhama Slide Transparent';
+          break;
+        case 'slideBlack':
+          pricePerSqM = 120;
+          glassTypeName = 'Xhama Slide Xham i zi 30%';
+          break;
+        case 'statik':
+          pricePerSqM = 95;
+          glassTypeName = 'Xhama Statik';
+          break;
+        default:
+          pricePerSqM = 90;
+          glassTypeName = 'Transparent';
+      }
+
       const totalPrice = area * pricePerSqM;
 
       lastPrice = {
         width,
         height,
-        glassType: glassType === 'black' ? 'Xham i Zi' : 'Transparent',
+        glassType: glassTypeName,
         area,
         price: totalPrice
       };
