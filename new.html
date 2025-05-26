@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Glass Price Calculator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+  <div class="flex flex-col md:flex-row gap-6 p-6 w-full max-w-5xl">
+    
+    <!-- Calculator Section -->
+    <div class="bg-white shadow-xl rounded-2xl p-8 w-full md:w-1/2">
+      <h1 class="text-2xl font-bold text-center mb-6">Glass Price Calculator</h1>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block font-medium">Width (cm)</label>
+          <input id="width" type="number" class="w-full mt-1 p-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+
+        <div>
+          <label class="block font-medium">Height (cm)</label>
+          <input id="height" type="number" class="w-full mt-1 p-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500" />
+        </div>
+
+        <div>
+          <label class="block font-medium">Glass Type</label>
+          <select id="glassType" class="w-full mt-1 p-2 border rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <option value="transparent">Transparent (€90/m²)</option>
+            <option value="black">Xham i Zi (€100/m²)</option>
+          </select>
+        </div>
+
+        <button onclick="calculatePrice()" class="w-full bg-blue-600 text-white p-2 rounded-xl hover:bg-blue-700 transition">Calculate</button>
+
+        <div class="text-xl font-semibold text-center mt-4">
+          Total Price: <span id="result">--</span>
+        </div>
+
+        <button onclick="addToTotal()" class="w-full bg-green-600 text-white p-2 rounded-xl hover:bg-green-700 transition">Add to Total</button>
+      </div>
+    </div>
+
+    <!-- Summary Section -->
+    <div class="bg-white shadow-xl rounded-2xl p-6 w-full md:w-1/2" id="summarySection">
+      <h2 class="text-xl font-bold mb-4">Total Summary</h2>
+      <ul id="summaryList" class="space-y-3"></ul>
+
+      <div class="mt-6 text-lg font-bold text-right">
+        Grand Total: <span id="grandTotal">0.00 €</span>
+      </div>
+
+      <!-- Buttons (hidden in PDF) -->
+      <div class="flex flex-col gap-3 mt-4 no-print">
+        <button onclick="clearSummary()" class="w-full bg-red-600 text-white p-2 rounded-xl hover:bg-red-700 transition">
+          Clear Summary
+        </button>
+        <button onclick="exportToPDF()" class="w-full bg-indigo-600 text-white p-2 rounded-xl hover:bg-indigo-700 transition">
+          Export to PDF
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let lastPrice = null;
+    let grandTotal = 0;
+
+    function calculatePrice() {
+      const width = parseFloat(document.getElementById('width').value);
+      const height = parseFloat(document.getElementById('height').value);
+      const glassType = document.getElementById('glassType').value;
+
+      if (isNaN(width) || isNaN(height)) {
+        document.getElementById('result').textContent = "Please enter valid dimensions.";
+        return;
+      }
+
+      const area = (width * height) / 10000; // convert cm² to m²
+      const pricePerSqM = glassType === 'black' ? 100 : 90;
+      const totalPrice = area * pricePerSqM;
+
+      lastPrice = {
+        width,
+        height,
+        glassType: glassType === 'black' ? 'Xham i Zi' : 'Transparent',
+        area,
+        price: totalPrice
+      };
+
+      document.getElementById('result').textContent = totalPrice.toFixed(2) + ' €';
+    }
+
+    function addToTotal() {
+      if (!lastPrice) {
+        alert("Please calculate first.");
+        return;
+      }
+
+      const list = document.getElementById('summaryList');
+      const item = document.createElement('li');
+      item.className = "bg-gray-100 p-4 rounded-xl shadow";
+
+      item.innerHTML = `
+        <div><strong>Type:</strong> ${lastPrice.glassType}</div>
+        <div><strong>Size:</strong> ${lastPrice.width}cm × ${lastPrice.height}cm</div>
+        <div><strong>Area:</strong> ${lastPrice.area.toFixed(2)} m²</div>
+        <div><strong>Price:</strong> ${lastPrice.price.toFixed(2)} €</div>
+      `;
+
+      list.appendChild(item);
+
+      grandTotal += lastPrice.price;
+      document.getElementById('grandTotal').textContent = grandTotal.toFixed(2) + ' €';
+
+      lastPrice = null;
+      document.getElementById('result').textContent = "--";
+    }
+
+    function clearSummary() {
+      document.getElementById('summaryList').innerHTML = "";
+      grandTotal = 0;
+      document.getElementById('grandTotal').textContent = "0.00 €";
+    }
+
+    function exportToPDF() {
+      const element = document.getElementById('summarySection');
+      const opt = {
+        margin: 10,
+        filename: 'roleta-summary.pdf',
+        html2canvas: { scale: 2, scrollY: 0 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      const buttons = document.querySelectorAll('.no-print');
+      buttons.forEach(btn => btn.style.display = 'none');
+
+      const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+
+      if (isMobile) {
+        alert("On mobile, the PDF will open in a new tab. Use your browser’s download or share option.");
+        html2pdf().from(element).set(opt).outputPdf('bloburl').then(url => {
+          window.open(url, '_blank');
+          buttons.forEach(btn => btn.style.display = '');
+        });
+      } else {
+        html2pdf().from(element).set(opt).save().then(() => {
+          buttons.forEach(btn => btn.style.display = '');
+        });
+      }
+    }
+  </script>
+</body>
+</html>
